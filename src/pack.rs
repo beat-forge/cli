@@ -8,11 +8,8 @@ use xz2::write::XzEncoder;
 use forge_lib::structs::forgemod::{ForgeMod, IncludeData};
 use forge_lib::structs::manifest::ForgeManifest;
 
-pub fn pack(in_manifest: PathBuf) -> Result<Bytes, std::io::Error> {
-    let root_path = in_manifest.parent().unwrap();
-    let manifest_str = read_to_string(&in_manifest)?;
-
-    let manifest: ForgeManifest = serde_json::from_str(&manifest_str)?;
+pub fn pack(manifest: ForgeManifest, root_path: PathBuf) -> Result<Bytes, std::io::Error> {
+    let root_path = root_path.canonicalize().unwrap().parent().unwrap().to_path_buf();
     let artifact_path = root_path.join(&manifest.artifact);
 
     if !artifact_path.exists() || artifact_path.extension().unwrap() != "dll" {
