@@ -1,90 +1,67 @@
-use std::path::PathBuf;
+mod api;
+mod commands;
+mod config;
+mod structs;
+mod utils;
+mod helpers;
 
-use clap::{Parser, Subcommand, ArgAction};
+use api::Client;
 
-mod pack;
-mod publish;
-mod init;
-mod login;
+use clap::{Parser, Subcommand};
+use commands::{login::login, new::new};
 
 #[derive(Parser, Debug)]
-#[command(author, about, version)]
-struct Args {
+#[clap(version = env!("CARGO_PKG_VERSION"), author = "BeatForge")]
+struct Cli {
+    #[arg(
+        long,
+        default_value = "https://api.beatforge.net",
+        allow_hyphen_values = true
+    )]
+    api_url: String,
+
+    #[arg(long, allow_hyphen_values = true)]
+    api_key: Option<String>,
+
     #[command(subcommand)]
-    command: Command,
+    subcmd: Commands,
 }
 
 #[derive(Subcommand, Debug)]
-enum Command {
-    Publish {
-        #[arg(short, long, default_value = "./forge_manifest.json")]
-        manifest: PathBuf,
-        #[arg(long, action)]
-        dry_run: bool,
-        #[arg(long, action)]
-        no_save: bool,
-    },
-
-    Init {
-        #[arg(short, long)]
-        name: String,
-        #[arg(short, long)]
-        category: String,
-        #[arg(short, long)]
-        artifact: PathBuf,
-        #[arg(short, long, default_value = "1.13.2")]
-        game_version: String,
-    },
-
-    Login {
-        #[arg(short, long, allow_hyphen_values = true)]
-        api_key: String,
-    }
+enum Commands {
+    Login,
+    New,
+    Init,
+    Publish,
+    Install,
+    Add,
 }
 
-fn main() {
-    let cli = Args::parse();
-    match cli.command {
-        Command::Init {
-            name,
-            category,
-            artifact,
-            game_version
-        } => {
-            init::init(name, category, game_version, artifact);
-        },
-        Command::Publish {
-            manifest,
-            dry_run,
-            no_save,
-        } => {
-            publish::publish(manifest, dry_run, no_save).unwrap();
-        },
-        Command::Login {
-            api_key,
-        } => {
-            login::login(api_key);
+fn main() -> anyhow::Result<(), anyhow::Error> {
+    let cli = Cli::parse();
+    let mut config = config::Config::load();
+
+    let mut client = Client::new(cli.api_url, config.api_key.clone().or(cli.api_key));
+    match cli.subcmd {
+        Commands::Login => {
+            login(&mut client, &mut config)?;
+        }
+        Commands::New => {
+            new(client, &mut config)?;
+        }
+        Commands::Init => {
+            todo!("Init command")
+        }
+        Commands::Publish => {
+            todo!("Publish command")
+        }
+        Commands::Install => {
+            todo!("Install command")
+        }
+        Commands::Add => {
+            todo!("Add command")
         }
     }
+
+    Ok(())
 }
-
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-
-//     #[test]
-//     pub fn test_test_pack() {
-//         let in_path = PathBuf::from("./project/beatmanifest.json");
-
-//         let data = pack::pack(in_path).unwrap();
-//         std::fs::write("./project/out/WhyIsThereNoLeaderboard.beatmod", data).unwrap();
-//     }
-
-//     #[test]
-//     pub fn test_test_unpack() {
-//         let in_path = PathBuf::from("./project/out/WhyIsThereNoLeaderboard.beatmod");
-
-//         let data = pack::unpack(in_path).unwrap();
-//         dbg!(data.manifest);
-//     }
-// }
