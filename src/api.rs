@@ -21,8 +21,11 @@ impl Client {
         );
 
         if self.api_key.is_some() {
-            req.with_header("Authorization", "Bearer ".to_string() + self.api_key.as_ref().unwrap())
-                .send()
+            req.with_header(
+                "Authorization",
+                "Bearer ".to_string() + self.api_key.as_ref().unwrap(),
+            )
+            .send()
         } else {
             req.send()
         }
@@ -38,8 +41,11 @@ impl Client {
             .with_body(body);
 
         if self.api_key.is_some() {
-            req.with_header("Authorization", "Bearer ".to_string() + self.api_key.as_ref().unwrap())
-                .send()
+            req.with_header(
+                "Authorization",
+                "Bearer ".to_string() + self.api_key.as_ref().unwrap(),
+            )
+            .send()
         } else {
             req.send()
         }
@@ -77,7 +83,7 @@ impl Client {
     }
 
     pub fn get_beat_saber_versions(&self) -> Result<Vec<String>> {
-        Ok(self
+        let mut vers = self
             .gql::<BeatSaberVersionResponse, _>(
                 r#"
         {
@@ -88,7 +94,15 @@ impl Client {
             .data
             .beat_saber_versions
             .into_iter()
-            .collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+
+        vers.sort_by(|a, b| {
+            semver::Version::parse(b)
+                .unwrap()
+                .cmp(&semver::Version::parse(a).unwrap())
+        });
+
+        Ok(vers)
     }
 
     pub fn get_me(&self) -> Result<User> {

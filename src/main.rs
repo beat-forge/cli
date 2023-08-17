@@ -1,14 +1,15 @@
 mod api;
 mod commands;
 mod config;
+mod helpers;
 mod structs;
 mod utils;
-mod helpers;
+mod solution;
 
 use api::Client;
-
 use clap::{Parser, Subcommand};
-use commands::{login::login, new::new};
+use commands::{login::login, new::new, build::build};
+use anyhow::{Result, Error};
 
 #[derive(Parser, Debug)]
 #[clap(version = env!("CARGO_PKG_VERSION"), author = "BeatForge")]
@@ -32,12 +33,13 @@ enum Commands {
     Login,
     New,
     Init,
+    Build,
     Publish,
     Install,
     Add,
 }
 
-fn main() -> anyhow::Result<(), anyhow::Error> {
+fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     let mut config = config::Config::load();
 
@@ -51,6 +53,9 @@ fn main() -> anyhow::Result<(), anyhow::Error> {
         }
         Commands::Init => {
             todo!("Init command")
+        }
+        Commands::Build => {
+            build(client, &mut config)?;
         }
         Commands::Publish => {
             todo!("Publish command")

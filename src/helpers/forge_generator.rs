@@ -3,8 +3,10 @@
 //! Blame Microsoft, they made us do it.
 //? - checksum, sargon64 - 2023
 
-use uuid::Uuid;
 use crate::structs::Instance;
+use forge_lib::structs::{forgemod, manifest::ForgeManifest, v1::ManifestBuilder};
+use semver::{Version, VersionReq};
+use uuid::Uuid;
 
 pub struct ForgeGenerator {
     pub name: String,
@@ -63,6 +65,11 @@ impl ForgeGenerator {
             ipa_manifest,
         )
         .unwrap();
+
+        std::fs::write(
+            format!("{}/{}/beatforge.manifest", self.path, self.name),
+            self.make_bf_manifest(),
+        ).unwrap();
 
         std::fs::write(
             format!("{}/{}/{}.csproj.user", self.path, self.name, self.name),
@@ -153,18 +160,22 @@ EndGlobal")
     <DebugSymbols>true</DebugSymbols>
     <DebugType>portable</DebugType>
     <LocalRefsDir Condition=\"Exists('..\\Refs')\">..\\Refs</LocalRefsDir>
-    <BeatSaberDir>$(LocalRefsDir)</BeatSaberDir>
+    <GameDirectory>$(LocalRefsDir)</GameDirectory>
     <AppOutputBase>$(MSBuildProjectDirectory)\\</AppOutputBase>
     <!--<PathMap>$(AppOutputBase)=X:\\$(AssemblyName)\\</PathMap>-->
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <PropertyGroup Condition=\" '$(Configuration)' == 'Debug' \">
+    <!-- This is required to upload a plugin on beatforge. -->
+    <Deterministic>true</Deterministic>
     <Optimize>false</Optimize>
     <OutputPath>bin\\Debug\\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     </PropertyGroup>
     <PropertyGroup Condition=\" '$(Configuration)' == 'Release' \">
+    <!-- This is required to upload a plugin on beatforge. -->
+    <Deterministic>true</Deterministic>
     <Optimize>true</Optimize>
     <OutputPath>bin\\Release\\</OutputPath>
     <ErrorReport>prompt</ErrorReport>
@@ -185,47 +196,47 @@ EndGlobal")
     <Reference Include=\"System.Data\" />
     <Reference Include=\"System.Xml\" />
     <Reference Include=\"Main\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\Main.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\Main.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"HMLib\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\HMLib.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\HMLib.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"HMUI\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\HMUI.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\HMUI.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"IPA.Loader\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\IPA.Loader.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\IPA.Loader.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"Unity.TextMeshPro\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\Unity.TextMeshPro.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\Unity.TextMeshPro.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"UnityEngine\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\UnityEngine.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\UnityEngine.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"UnityEngine.CoreModule\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\UnityEngine.CoreModule.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\UnityEngine.CoreModule.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"UnityEngine.UI\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\UnityEngine.UI.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\UnityEngine.UI.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"UnityEngine.UIElementsModule\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\UnityEngine.UIElementsModule.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\UnityEngine.UIElementsModule.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"UnityEngine.UIModule\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\UnityEngine.UIModule.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\UnityEngine.UIModule.dll</HintPath>
         <Private>False</Private>
     </Reference>
     <Reference Include=\"UnityEngine.VRModule\">
-        <HintPath>$(BeatSaberDir)\\Beat Saber_Data\\Managed\\UnityEngine.VRModule.dll</HintPath>
+        <HintPath>$(GameDirectory)\\Beat Saber_Data\\Managed\\UnityEngine.VRModule.dll</HintPath>
         <Private>False</Private>
     </Reference>
     </ItemGroup>
@@ -237,6 +248,9 @@ EndGlobal")
     </ItemGroup>
     <ItemGroup>
     <EmbeddedResource Include=\"manifest.json\" />
+    </ItemGroup>
+    <ItemGroup>
+    <EmbeddedResource Include=\"beatforge.manifest\" />
     </ItemGroup>
     <ItemGroup>
     <None Include=\"Directory.Build.props\" Condition=\"Exists('Directory.Build.props')\" />
@@ -257,15 +271,15 @@ EndGlobal")
     fn make_csproj_user(&self) -> String {
         let binding = self.instance.path.clone();
         let ipath = binding.to_str().unwrap();
-        format!("<?xml version=\"1.0\" encoding=\"utf-8\"?>
+        format!(
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 <Project>
-    <PropertyGroup>
-        <BeatSaberDir>{ipath}</BeatSaberDir>
-        
-        <!-- Path to your Beat Saber install, only set if different from BeatSaberDir. -->
-        <!--<GameDirectory></GameDirectory>-->
+    <PropertyGroup>        
+        <!-- Path to your Beat Saber install. -->
+        <GameDirectory>{ipath}</GameDirectory>
     </PropertyGroup>
-</Project>")
+</Project>"
+        )
     }
 
     fn make_plugin_controller(&self) -> String {
@@ -365,8 +379,7 @@ namespace {name}
 
     fn make_plugin(&self) -> String {
         let name = self.name.clone();
-        format!("
-using System;
+        format!("using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -496,8 +509,7 @@ namespace {name}
         */
         #endregion
     }}
-}}
-    ")
+}}")
     }
 
     fn make_dir_build_props(&self) -> String {
@@ -515,50 +527,47 @@ namespace {name}
         let name = self.name.clone();
 
         format!(
-            "
-        using System.Reflection;
-        using System.Runtime.CompilerServices;
-        using System.Runtime.InteropServices;
-        
-        // General Information about an assembly is controlled through the following 
-        // set of attributes. Change these attribute values to modify the information
-        // associated with an assembly.
-        [assembly: AssemblyTitle(\"{name}\")]
-        [assembly: AssemblyDescription(\"\")]
-        [assembly: AssemblyCompany(\"\")]
-        [assembly: AssemblyProduct(\"{name}\")]
-        [assembly: AssemblyCopyright(\"Copyright ©  2023\")]
-        [assembly: AssemblyTrademark(\"\")]
-        [assembly: AssemblyCulture(\"\")]
-        
-        // Setting ComVisible to false makes the types in this assembly not visible 
-        // to COM components.  If you need to access a type in this assembly from 
-        // COM, set the ComVisible attribute to true on that type.
-        [assembly: ComVisible(false)]
-        
-        // The following GUID is for the ID of the typelib if this project is exposed to COM
-        [assembly: Guid(\"0c253322-35ed-4891-8cd2-233532a7e71d\")]
-        
-        // Version information for an assembly consists of the following four values:
-        //
-        //      Major Version
-        //      Minor Version 
-        //      Build Number
-        //      Revision
-        //
-        // You can specify all the values or you can default the Build and Revision Numbers 
-        // by using the '*' as shown below:
-        // [assembly: AssemblyVersion(\"1.0.*\")]
-        [assembly: AssemblyVersion(\"0.0.1\")]
-        [assembly: AssemblyFileVersion(\"0.0.1\")]
-        "
+            "using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+// General Information about an assembly is controlled through the following 
+// set of attributes. Change these attribute values to modify the information
+// associated with an assembly.
+[assembly: AssemblyTitle(\"{name}\")]
+[assembly: AssemblyDescription(\"\")]
+[assembly: AssemblyCompany(\"\")]
+[assembly: AssemblyProduct(\"{name}\")]
+[assembly: AssemblyCopyright(\"Copyright ©  2023\")]
+[assembly: AssemblyTrademark(\"\")]
+[assembly: AssemblyCulture(\"\")]
+
+// Setting ComVisible to false makes the types in this assembly not visible 
+// to COM components.  If you need to access a type in this assembly from 
+// COM, set the ComVisible attribute to true on that type.
+[assembly: ComVisible(false)]
+
+// The following GUID is for the ID of the typelib if this project is exposed to COM
+[assembly: Guid(\"0c253322-35ed-4891-8cd2-233532a7e71d\")]
+
+// Version information for an assembly consists of the following four values:
+//
+//      Major Version
+//      Minor Version 
+//      Build Number
+//      Revision
+//
+// You can specify all the values or you can default the Build and Revision Numbers 
+// by using the '*' as shown below:
+// [assembly: AssemblyVersion(\"1.0.*\")]
+[assembly: AssemblyVersion(\"0.0.1\")]
+[assembly: AssemblyFileVersion(\"0.0.1\")]"
         )
     }
 
     fn make_plugin_conf(&self) -> String {
         let name = self.name.clone();
-        format!("
-        /*
+        format!("/*
 using System.Runtime.CompilerServices;
 using IPA.Config.Stores;
 
@@ -602,13 +611,12 @@ namespace {name}.Configuration
     fn make_ipa_manifest(&self) -> String {
         let name = self.name.clone();
 
-        format!("
-{{
+        format!("{{
     \"$schema\": \"https://raw.githubusercontent.com/bsmg/BSIPA-MetadataFileSchema/master/Schema.json\",
     \"id\": \"{name}\",
     \"name\": \"{name}\",
-    \"author\": \"BeatForge\",
-    \"version\": \"0.1.0\",
+    \"author\": \"YourNameHere\",
+    \"version\": \"0.0.1\",
     \"description\": \"\",
     \"gameVersion\": \"1.29.1\",
     \"dependsOn\": {{
@@ -616,6 +624,19 @@ namespace {name}.Configuration
     }}
 }}
 ")
+    }
+
+    fn make_bf_manifest(&self) -> String {
+        let name = self.name.clone();
+        let manifest = ManifestBuilder::new_mod(
+            name,
+            Version::new(0, 0, 1),
+            VersionReq::STAR,
+            self.path.clone().into(),
+        )
+        .build();
+
+        serde_json::to_string_pretty(&manifest).unwrap()
     }
 
     fn make_gitignore(&self) -> String {
@@ -633,11 +654,9 @@ namespace {name}.Configuration
         let name = self.name.clone();
 
         format!(
-            "
-# {name}
+            "# {name}
 
-This is an autogenerated project using [BeatForge](https://beatforge.net)
-"
+This is an autogenerated project using [BeatForge](https://beatforge.net)"
         )
     }
 }

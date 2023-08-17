@@ -5,6 +5,7 @@ use crate::{
     utils::{progress::{make_progress, finish_progress}, get_instance_paths, get_game_version},
     structs::Instance,
 };
+use anyhow::Result;
 use convert_case::{Case, Casing};
 use inquire::{Confirm, MultiSelect, Select, Text, validator::{self, MinLengthValidator, Validation}, CustomUserError};
 use slug::slugify;
@@ -23,7 +24,7 @@ impl validator::StringValidator for FileExistsValidatior {
     }
 }
 
-pub fn new(client: Client, _config: &mut Config) -> anyhow::Result<()> {
+pub fn new(client: Client, _config: &mut Config) -> Result<()> {
     let mod_name = Text::new("What is the name of the mod?").prompt()?;
 
     // slugs
