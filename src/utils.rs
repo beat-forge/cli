@@ -1,7 +1,7 @@
 use crate::structs::Instance;
+use directories::{BaseDirs, UserDirs};
 use regex::Regex;
 use std::io::Read;
-use directories::{BaseDirs, UserDirs};
 
 pub mod progress {
     use indicatif::{ProgressBar, ProgressStyle};
@@ -83,7 +83,7 @@ pub fn get_instance_paths() -> Vec<Instance> {
         let bsm_config_file = std::fs::File::open(bsm_config_path).unwrap();
         let bsm_config: serde_json::Value = serde_json::from_reader(bsm_config_file).unwrap();
 
-        if bsm_config["installation_folder"].as_str().is_none() {
+        if bsm_config["installation-folder"].as_str().is_none() {
             let bs_manager = documents_dir.join("BSManager").join("BSInstances");
 
             for entry in std::fs::read_dir(bs_manager).unwrap() {
@@ -94,7 +94,24 @@ pub fn get_instance_paths() -> Vec<Instance> {
                     instances.push(Instance {
                         name: path.file_name().unwrap().to_str().unwrap().to_string(),
                         game_version: get_game_version(path.to_str().unwrap().to_string()),
-                        path
+                        path,
+                    });
+                }
+            }
+        } else {
+            let base_path = bsm_config["installation-folder"].as_str().unwrap();
+            let mut bs_manager = std::path::Path::new(base_path).join("BSManager");
+            bs_manager.push("BSInstances");
+
+            for entry in std::fs::read_dir(base_path).unwrap() {
+                let entry = entry.unwrap();
+                let path = entry.path();
+
+                if path.is_dir() {
+                    instances.push(Instance {
+                        name: path.file_name().unwrap().to_str().unwrap().to_string(),
+                        game_version: get_game_version(path.to_str().unwrap().to_string()),
+                        path,
                     });
                 }
             }
