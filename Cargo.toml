@@ -22,7 +22,7 @@ bincode = "1.3.3"
 forge-lib = {git = "https://github.com/beat-forge/lib", branch = "main"}
 simple-error = "0.3.0"
 minreq = { version = "2.8.1", features = ["https-rustls", "json-using-serde"] }
-indicatif = "0.17.5"
+indicatif = "0.17.6"
 slug = "0.1.4"
 regex = "1.9.1"
 semver = "1.0.17"
