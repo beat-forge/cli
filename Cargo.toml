@@ -28,7 +28,7 @@ regex = "1.9.1"
 semver = "1.0.17"
 inquire = "0.6.2"
 clap_complete = "4.3.2"
-anyhow = "1.0.72"
+anyhow = "1.0.75"
 directories = "5.0.1"
 chrono = { version = "0.4.26", features = ["serde"] }
 uuid = { version = "1.4.1", features = ["v4"] }
