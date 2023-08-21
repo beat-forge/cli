@@ -1,13 +1,19 @@
 use crate::{
     api::Client,
     config::Config,
-    helpers::forge_generator::{self, ForgeGenerator},
-    utils::{progress::{make_progress, finish_progress}, get_instance_paths, get_game_version},
+    helpers::forge_generator::ForgeGenerator,
     structs::Instance,
+    utils::{
+        get_game_version, get_instance_paths,
+        progress::{finish_progress, make_progress},
+    },
 };
 use anyhow::Result;
 use convert_case::{Case, Casing};
-use inquire::{Confirm, MultiSelect, Select, Text, validator::{self, MinLengthValidator, Validation}, CustomUserError};
+use inquire::{
+    validator::{self, MinLengthValidator, Validation},
+    Confirm, CustomUserError, MultiSelect, Select, Text,
+};
 use slug::slugify;
 use std::path::PathBuf;
 
@@ -82,7 +88,7 @@ pub fn new(client: Client, _config: &mut Config) -> Result<()> {
     .prompt()?;
 
     let instances = get_instance_paths();
-    let instance = if instances.len() == 0 {
+    let instance = if instances.is_empty() {
         let ipath: PathBuf = Text::new("Could not autodetect Beat Saber install. Please enter the path to your Beat Saber install.")
             .with_validator(FileExistsValidatior)
             .prompt()?.into();
@@ -92,16 +98,24 @@ pub fn new(client: Client, _config: &mut Config) -> Result<()> {
             name: "Custom".into(),
             game_version: get_game_version(ipath.to_str().unwrap().to_string()),
         }
-
     } else {
-        Select::new("Which Beat Saber install would you like to build in?", instances).prompt()?
+        Select::new(
+            "Which Beat Saber install would you like to build in?",
+            instances,
+        )
+        .prompt()?
     };
 
     let pb = make_progress();
     pb.set_message(format!("Creating {}...", mod_name_pascal));
 
     let mod_path = std::env::current_dir()?.join(&mod_name_pascal);
-    ForgeGenerator::new(mod_name_pascal, mod_path.to_str().unwrap().to_string(), instance).generate();
+    ForgeGenerator::new(
+        mod_name_pascal,
+        mod_path.to_str().unwrap().to_string(),
+        instance,
+    )
+    .generate();
 
     finish_progress(&pb, "Done!");
 

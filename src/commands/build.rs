@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crate::{api::Client, config::Config, solution::Solution};
 use anyhow::Result;
 
-pub fn build(client: Client, config: &mut Config) -> Result<()> {
+pub fn build(_client: Client, _config: &mut Config) -> Result<()> {
     println!("Building project...");
     let cwd = std::env::current_dir()?;
     let manifest_paths = manifest_search(&cwd)?;

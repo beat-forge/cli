@@ -2,14 +2,14 @@ mod api;
 mod commands;
 mod config;
 mod helpers;
+mod solution;
 mod structs;
 mod utils;
-mod solution;
 
+use anyhow::{Error, Result};
 use api::Client;
 use clap::{Parser, Subcommand};
-use commands::{login::login, new::new, build::build};
-use anyhow::{Result, Error};
+use commands::{build::build, login::login, new::new};
 
 #[derive(Parser, Debug)]
 #[clap(version = env!("CARGO_PKG_VERSION"), author = "BeatForge")]

@@ -127,7 +127,7 @@ pub fn get_game_version(path: String) -> String {
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes).unwrap();
 
-    let out = String::from_utf8_lossy(&*bytes);
+    let out = String::from_utf8_lossy(&bytes);
     let pos = out.find("public.app-category.games").unwrap();
     let regex = Regex::new(r"[\d]+.[\d]+.[\d]+(p1)?").unwrap();
 

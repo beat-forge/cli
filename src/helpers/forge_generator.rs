@@ -4,7 +4,7 @@
 //? - checksum, sargon64 - 2023
 
 use crate::structs::Instance;
-use forge_lib::structs::{forgemod, manifest::ForgeManifest, v1::ManifestBuilder};
+use forge_lib::structs::v1::ManifestBuilder;
 use semver::{Version, VersionReq};
 use uuid::Uuid;
 
@@ -69,7 +69,8 @@ impl ForgeGenerator {
         std::fs::write(
             format!("{}/{}/beatforge.manifest", self.path, self.name),
             self.make_bf_manifest(),
-        ).unwrap();
+        )
+        .unwrap();
 
         std::fs::write(
             format!("{}/{}/{}.csproj.user", self.path, self.name, self.name),

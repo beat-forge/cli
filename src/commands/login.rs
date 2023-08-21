@@ -1,6 +1,5 @@
 use crate::{api::Client, config::Config, utils::progress::*};
 use anyhow::Result;
-use std::time::Duration;
 use inquire::{validator::ExactLengthValidator, Password, PasswordDisplayMode, Select};
 
 enum LoginMethod {

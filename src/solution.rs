@@ -1,7 +1,7 @@
 // A struct representing a C# solution with build helpers
 
+use anyhow::Result;
 use std::{path::PathBuf, process::Command};
-use anyhow::{Result, Error};
 
 pub struct Solution {
     pub name: String,
@@ -9,8 +9,11 @@ pub struct Solution {
 }
 
 impl Solution {
-    pub fn new<T: Into<String>, U: Into<PathBuf>>(name: T, path: U) -> Solution { 
-        Solution { name: name.into(), path: path.into() }
+    pub fn new<T: Into<String>, U: Into<PathBuf>>(name: T, path: U) -> Solution {
+        Solution {
+            name: name.into(),
+            path: path.into(),
+        }
     }
 
     pub fn restore(&self) -> Result<()> {
