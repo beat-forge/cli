@@ -1,7 +1,31 @@
 use crate::structs::Instance;
+use anyhow::Result;
 use directories::{BaseDirs, UserDirs};
+use forge_lib::structs::v1::{parse_v1_forgemanifest, ForgeManifestTypes};
 use regex::Regex;
-use std::io::Read;
+use std::{io::Read, path::PathBuf};
+
+pub fn manifest_search(path: &std::path::PathBuf) -> Result<Vec<ForgeManifestTypes>> {
+    let mut manifests = Vec::new();
+
+    for entry in std::fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            let mut sub_manifests = manifest_search(&path)?;
+            manifests.append(&mut sub_manifests);
+        } else if path.ends_with("beatforge.manifest") {
+            let mut file = std::fs::File::open(path)?;
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes)?;
+
+            manifests.push(parse_v1_forgemanifest(&*bytes).unwrap());
+        }
+    }
+
+    Ok(manifests)
+}
 
 pub mod progress {
     use indicatif::{ProgressBar, ProgressStyle};
@@ -45,8 +69,7 @@ static STEAM_PATH: &str = r"C:\Program Files (x86)\Steam\steamapps\common\Beat S
 static OCULUS_PATH: &str =
     r"C:\Program Files\Oculus\Software\Software\hyperbolic-magnetism-beat-saber";
 
-pub fn get_instance_paths() -> Vec<Instance> {
-    // detect instances from steam and oculus
+pub fn get_instance_paths() -> Result<Vec<Instance>> {
     let steam_path_exists = std::path::Path::new(STEAM_PATH).exists();
     let oculus_path_exists = std::path::Path::new(OCULUS_PATH).exists();
 
@@ -56,7 +79,7 @@ pub fn get_instance_paths() -> Vec<Instance> {
         let steam_instance = Instance {
             name: "Steam".to_string(),
             path: STEAM_PATH.into(),
-            game_version: get_game_version(STEAM_PATH.to_string()),
+            game_version: get_game_version(STEAM_PATH.to_string())?,
         };
 
         instances.push(steam_instance);
@@ -66,7 +89,7 @@ pub fn get_instance_paths() -> Vec<Instance> {
         let oculus_instance = Instance {
             name: "Oculus".to_string(),
             path: OCULUS_PATH.into(),
-            game_version: get_game_version(OCULUS_PATH.to_string()),
+            game_version: get_game_version(OCULUS_PATH.to_string())?,
         };
 
         instances.push(oculus_instance);
@@ -93,7 +116,7 @@ pub fn get_instance_paths() -> Vec<Instance> {
                 if path.is_dir() {
                     instances.push(Instance {
                         name: path.file_name().unwrap().to_str().unwrap().to_string(),
-                        game_version: get_game_version(path.to_str().unwrap().to_string()),
+                        game_version: get_game_version(path.to_str().unwrap().to_string())?,
                         path,
                     });
                 }
@@ -110,7 +133,7 @@ pub fn get_instance_paths() -> Vec<Instance> {
                 if path.is_dir() {
                     instances.push(Instance {
                         name: path.file_name().unwrap().to_str().unwrap().to_string(),
-                        game_version: get_game_version(path.to_str().unwrap().to_string()),
+                        game_version: get_game_version(path.to_str().unwrap().to_string())?,
                         path,
                     });
                 }
@@ -118,12 +141,12 @@ pub fn get_instance_paths() -> Vec<Instance> {
         }
     }
 
-    instances
+    Ok(instances)
 }
 
-pub fn get_game_version(path: String) -> String {
-    let mut file =
-        std::fs::File::open(format!("{}\\Beat Saber_Data\\globalgamemanagers", path)).unwrap();
+pub fn get_game_version(path: String) -> Result<String> {
+    let mut file = std::fs::File::open(format!("{}\\Beat Saber_Data\\globalgamemanagers", path))?;
+
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes).unwrap();
 
@@ -133,5 +156,6 @@ pub fn get_game_version(path: String) -> String {
 
     let ver = &out[pos..];
     let ver = regex.find(ver).unwrap().as_str();
-    ver.to_string()
+
+    Ok(ver.to_string())
 }

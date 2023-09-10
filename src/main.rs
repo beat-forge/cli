@@ -9,7 +9,7 @@ mod utils;
 use anyhow::{Error, Result};
 use api::Client;
 use clap::{Parser, Subcommand};
-use commands::{build::build, login::login, new::new};
+use commands::{build::build, login::login, new::new, publish::publish};
 
 #[derive(Parser, Debug)]
 #[clap(version = env!("CARGO_PKG_VERSION"), author = "BeatForge")]
@@ -58,7 +58,7 @@ fn main() -> Result<(), Error> {
             build(client, &mut config)?;
         }
         Commands::Publish => {
-            todo!("Publish command")
+            publish(&mut client, &mut config)?;
         }
         Commands::Install => {
             todo!("Install command")

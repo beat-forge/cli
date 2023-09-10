@@ -8,7 +8,7 @@ use crate::{
         progress::{finish_progress, make_progress},
     },
 };
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use convert_case::{Case, Casing};
 use inquire::{
     validator::{self, MinLengthValidator, Validation},
@@ -45,6 +45,7 @@ pub fn new(client: Client, _config: &mut Config) -> Result<()> {
 
     while !pascal_chosen {
         mod_name_pascal = Text::new("What would you like the name of the solution to be?")
+            .with_validator(MinLengthValidator::new(1))
             .with_help_message("This must be in PascalCase. e.g. beat forge -> BeatForge")
             .prompt()?;
 
@@ -55,6 +56,11 @@ pub fn new(client: Client, _config: &mut Config) -> Result<()> {
         .prompt()?;
     }
 
+    if mod_name_pascal.len() < 1 {
+        println!("Name must be at least 1 character long.");
+        return Ok(());
+    }
+
     let mut slug_chosen = Confirm::new(&format!(
         "Is {} a good identifier for your mod? (THIS CANNOT BE CHANGED LATER)",
         mod_slug
@@ -62,7 +68,11 @@ pub fn new(client: Client, _config: &mut Config) -> Result<()> {
     .prompt()?;
 
     while !slug_chosen {
-        mod_slug = slugify(Text::new("What would you like your mod's identifier to be?").prompt()?);
+        mod_slug = slugify(
+            Text::new("What would you like your mod's identifier to be?")
+                .with_validator(MinLengthValidator::new(1))
+                .prompt()?,
+        );
         slug_chosen = Confirm::new(&format!(
             "Is {} a good identifier for your mod? (THIS CANNOT BE CHANGED LATER)",
             mod_slug
@@ -88,6 +98,12 @@ pub fn new(client: Client, _config: &mut Config) -> Result<()> {
     .prompt()?;
 
     let instances = get_instance_paths();
+
+    if instances.is_err() {
+        return Err(anyhow!("Could not find any Beat Saber installs."));
+    }
+    
+    let instances = instances.unwrap();
     let instance = if instances.is_empty() {
         let ipath: PathBuf = Text::new("Could not autodetect Beat Saber install. Please enter the path to your Beat Saber install.")
             .with_validator(FileExistsValidatior)
@@ -96,7 +112,7 @@ pub fn new(client: Client, _config: &mut Config) -> Result<()> {
         Instance {
             path: ipath.clone(),
             name: "Custom".into(),
-            game_version: get_game_version(ipath.to_str().unwrap().to_string()),
+            game_version: get_game_version(ipath.to_str().unwrap().to_string())?,
         }
     } else {
         Select::new(
