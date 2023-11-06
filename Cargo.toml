@@ -23,7 +23,7 @@ forge-lib = {git = "https://github.com/beat-forge/lib", branch = "main"}
 simple-error = "0.3.0"
 minreq = { version = "2.11.0", features = ["https-rustls", "json-using-serde"] }
 indicatif = "0.17.7"
-slug = "0.1.4"
+slug = "0.1.5"
 regex = "1.10.2"
 semver = "1.0.20"
 inquire = "0.6.2"
